@@ -8,14 +8,29 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var viewModel = PhotobioreactorViewModel()
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView {
+            DashboardView(viewModel: viewModel)
+                .tabItem {
+                    Label("Dashboard", systemImage: "leaf.fill")
+                }
+
+            ControlsView(viewModel: viewModel)
+                .tabItem {
+                    Label("Controls", systemImage: "slider.horizontal.3")
+                }
+
+            DeviceView(viewModel: viewModel)
+                .tabItem {
+                    Label("Device", systemImage: "antenna.radiowaves.left.and.right")
+                }
+            GasHistoryCardView(history: viewModel.history)
+                .tabItem {
+                    Label("History", systemImage: "clock.fill")
+                }
         }
-        .padding()
     }
 }
 

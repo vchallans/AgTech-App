@@ -9,15 +9,17 @@
 import SwiftUI
 
 struct ControlsView: View {
-    @State private var pumpOn = true
+    @ObservedObject var viewModel: PhotobioreactorViewModel
 
     var body: some View {
         VStack(spacing: 20) {
-            Toggle("Air Pump", isOn: $pumpOn)
+            Toggle("Air Pump", isOn: $viewModel.pumpOn)
 
             Button("Calibrate Sensor") {
                 print("Calibrating...")
             }
+
+            Text("Pump is currently \(viewModel.pumpOn ? "On" : "Off")")
         }
         .padding()
     }

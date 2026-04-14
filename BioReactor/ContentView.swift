@@ -26,6 +26,7 @@ struct ContentView: View {
                 .tabItem {
                     Label("Device", systemImage: "antenna.radiowaves.left.and.right")
                 }
+
             GasHistoryCardView(history: viewModel.history)
                 .tabItem {
                     Label("History", systemImage: "clock.fill")

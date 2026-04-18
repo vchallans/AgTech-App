@@ -17,6 +17,18 @@ struct ReactorReading: Identifiable {
     let o2ppm: Double
     let temperatureC: Double
     let humidityPercent: Double
+    let airflowSlm: Double
+
+    func applying(_ update: GroBotSensorUpdate, at timestamp: Date = Date()) -> ReactorReading {
+        ReactorReading(
+            timestamp: timestamp,
+            co2ppm: update.co2ppm ?? co2ppm,
+            o2ppm: o2ppm,
+            temperatureC: update.temperatureC ?? temperatureC,
+            humidityPercent: update.humidityPercent ?? humidityPercent,
+            airflowSlm: update.airflowSlm ?? airflowSlm
+        )
+    }
 }
 
 struct AlertThresholds: Codable {
@@ -111,6 +123,7 @@ final class PhotobioreactorViewModel: ObservableObject {
     private let savedRemindersKey = "pbr_savedReminders"
     private let bluetoothManager: GroBotBluetoothManaging
     private let shouldUseMockUpdates: Bool
+    private let liveReadingMergeWindowSeconds: TimeInterval = 0.5
 
     private var hasSentLowTempAlert = false
     private var hasSentHighTempAlert = false
@@ -118,6 +131,7 @@ final class PhotobioreactorViewModel: ObservableObject {
     private var hasSentLowO2Alert = false
     private var hasSentLowHumidityAlert = false
     private var hasSentHighHumidityAlert = false
+    private var lastLiveReadingAt: Date?
 
     init(
         bluetoothManager: GroBotBluetoothManaging = GroBotBluetoothManager(),
@@ -132,7 +146,8 @@ final class PhotobioreactorViewModel: ObservableObject {
             co2ppm: 650,
             o2ppm: 210000,
             temperatureC: 24.0,
-            humidityPercent: 52.0
+            humidityPercent: 52.0,
+            airflowSlm: .nan
         )
 
         self.currentReading = initial
@@ -178,13 +193,15 @@ final class PhotobioreactorViewModel: ObservableObject {
         let newO2 = max(200000, min(220000, currentReading.o2ppm + Double.random(in: -500...500)))
         let newTemp = max(18, min(32, currentReading.temperatureC + Double.random(in: -0.3...0.3)))
         let newHumidity = max(30, min(80, currentReading.humidityPercent + Double.random(in: -1.0...1.0)))
+        let newAirflow = max(0, min(3, currentReading.airflowSlm.isFinite ? currentReading.airflowSlm + Double.random(in: -0.1...0.1) : 1.0))
 
         let newReading = ReactorReading(
             timestamp: Date(),
             co2ppm: newCO2,
             o2ppm: newO2,
             temperatureC: newTemp,
-            humidityPercent: newHumidity
+            humidityPercent: newHumidity,
+            airflowSlm: newAirflow
         )
 
         updateReading(newReading)
@@ -204,6 +221,26 @@ final class PhotobioreactorViewModel: ObservableObject {
 
         updateAlgaeHealth(using: newReading)
         evaluateThresholds(using: newReading)
+    }
+
+    private func applyLiveSensorUpdate(_ update: GroBotSensorUpdate) {
+        let liveReading = currentReading.applying(update)
+        currentReading = liveReading
+
+        if let lastLiveReadingAt,
+           liveReading.timestamp.timeIntervalSince(lastLiveReadingAt) < liveReadingMergeWindowSeconds,
+           !history.isEmpty {
+            history[history.count - 1] = liveReading
+        } else {
+            history.append(liveReading)
+            if history.count > 60 {
+                history.removeFirst()
+            }
+        }
+
+        lastLiveReadingAt = liveReading.timestamp
+        updateAlgaeHealth(using: liveReading)
+        evaluateThresholds(using: liveReading)
     }
 
     // MARK: - Algae Health
@@ -547,7 +584,8 @@ final class PhotobioreactorViewModel: ObservableObject {
             co2ppm: currentReading.co2ppm,
             o2ppm: currentReading.o2ppm,
             temperatureC: thresholds.maxTempC + 3.0,
-            humidityPercent: currentReading.humidityPercent
+            humidityPercent: currentReading.humidityPercent,
+            airflowSlm: currentReading.airflowSlm
         )
         updateReading(reading)
     }
@@ -558,7 +596,8 @@ final class PhotobioreactorViewModel: ObservableObject {
             co2ppm: thresholds.maxCO2ppm + 300.0,
             o2ppm: currentReading.o2ppm,
             temperatureC: currentReading.temperatureC,
-            humidityPercent: currentReading.humidityPercent
+            humidityPercent: currentReading.humidityPercent,
+            airflowSlm: currentReading.airflowSlm
         )
         updateReading(reading)
     }
@@ -569,7 +608,8 @@ final class PhotobioreactorViewModel: ObservableObject {
             co2ppm: currentReading.co2ppm,
             o2ppm: thresholds.minO2ppm - 5000.0,
             temperatureC: currentReading.temperatureC,
-            humidityPercent: currentReading.humidityPercent
+            humidityPercent: currentReading.humidityPercent,
+            airflowSlm: currentReading.airflowSlm
         )
         updateReading(reading)
     }
@@ -580,7 +620,8 @@ final class PhotobioreactorViewModel: ObservableObject {
             co2ppm: currentReading.co2ppm,
             o2ppm: currentReading.o2ppm,
             temperatureC: currentReading.temperatureC,
-            humidityPercent: thresholds.minHumidityPercent - 5.0
+            humidityPercent: thresholds.minHumidityPercent - 5.0,
+            airflowSlm: currentReading.airflowSlm
         )
         updateReading(reading)
     }
@@ -627,15 +668,7 @@ extension PhotobioreactorViewModel: GroBotBluetoothManagerDelegate {
         }
     }
 
-    func bluetoothManager(_ manager: GroBotBluetoothManaging, didReceiveCO2 ppm: Double) {
-        let liveReading = ReactorReading(
-            timestamp: Date(),
-            co2ppm: ppm,
-            o2ppm: currentReading.o2ppm,
-            temperatureC: currentReading.temperatureC,
-            humidityPercent: currentReading.humidityPercent
-        )
-
-        updateReading(liveReading)
+    func bluetoothManager(_ manager: GroBotBluetoothManaging, didReceiveSensorUpdate update: GroBotSensorUpdate) {
+        applyLiveSensorUpdate(update)
     }
 }

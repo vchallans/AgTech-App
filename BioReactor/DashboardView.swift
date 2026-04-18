@@ -21,7 +21,8 @@ struct DashboardView: View {
                     readingRow(title: "CO₂", value: "\(Int(viewModel.currentReading.co2ppm)) ppm")
                     readingRow(title: "O₂", value: "\(Int(viewModel.currentReading.o2ppm)) ppm")
                     readingRow(title: "Temperature", value: "\(String(format: "%.1f", viewModel.currentReading.temperatureC)) °C")
-                    readingRow(title: "Humidity", value: "\"\(String(format: "%.1f", viewModel.currentReading.humidityPercent)) %")
+                    readingRow(title: "Humidity", value: "\(String(format: "%.1f", viewModel.currentReading.humidityPercent)) %")
+                    readingRow(title: "Airflow", value: airflowText)
                 }
                 .padding()
                 .background(Color(.systemGray6))
@@ -161,6 +162,14 @@ struct DashboardView: View {
         default:
             return .red
         }
+    }
+
+    private var airflowText: String {
+        guard viewModel.currentReading.airflowSlm.isFinite else {
+            return "N/A"
+        }
+
+        return "\(String(format: "%.2f", viewModel.currentReading.airflowSlm)) slm"
     }
 
     private func scheduleText(

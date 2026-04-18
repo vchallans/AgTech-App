@@ -8,7 +8,8 @@ final class ReactorViewModel: ObservableObject {
         co2ppm: 650,
         o2ppm: 210000,
         temperatureC: 25,
-        humidityPercent: 50
+        humidityPercent: 50,
+        airflowSlm: .nan
     )
 
     @Published var history: [ReactorReading] = []
@@ -43,13 +44,15 @@ final class ReactorViewModel: ObservableObject {
 
         let newTemp = max(18, min(32, currentReading.temperatureC + Double.random(in: -0.3...0.3)))
         let newHumidity = max(30, min(80, currentReading.humidityPercent + Double.random(in: -1.0...1.0)))
+        let newAirflow = max(0, min(3, currentReading.airflowSlm.isFinite ? currentReading.airflowSlm + Double.random(in: -0.1...0.1) : 1.0))
 
         let newReading = ReactorReading(
             timestamp: Date(),
             co2ppm: newCO2,
             o2ppm: newO2,
             temperatureC: newTemp,
-            humidityPercent: newHumidity
+            humidityPercent: newHumidity,
+            airflowSlm: newAirflow
         )
 
         currentReading = newReading
@@ -65,4 +68,3 @@ final class ReactorViewModel: ObservableObject {
 //
 //  Created by Vidhi Challani on 3/26/26.
 //
-

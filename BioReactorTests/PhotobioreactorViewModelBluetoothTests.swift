@@ -13,8 +13,8 @@ private final class MockBluetoothManager: GroBotBluetoothManaging {
         delegate?.bluetoothManager(self, didChangeStatus: status)
     }
 
-    func emitCO2(_ ppm: Double) {
-        delegate?.bluetoothManager(self, didReceiveCO2: ppm)
+    func emitUpdate(_ update: GroBotSensorUpdate) {
+        delegate?.bluetoothManager(self, didReceiveSensorUpdate: update)
     }
 }
 
@@ -50,7 +50,7 @@ final class PhotobioreactorViewModelBluetoothTests: XCTestCase {
         XCTAssertEqual(viewModel.bluetoothStatusMessage, "Connected to BioReactor-ESP32")
     }
 
-    func test_receivedCO2_updatesCurrentReading() {
+    func test_receivedSensorUpdate_mergesMultipleLiveFieldsIntoCurrentReading() {
         let bluetoothManager = MockBluetoothManager()
         let viewModel = PhotobioreactorViewModel(
             bluetoothManager: bluetoothManager,
@@ -58,8 +58,41 @@ final class PhotobioreactorViewModelBluetoothTests: XCTestCase {
             shouldRequestNotificationPermission: false
         )
 
-        bluetoothManager.emitCO2(583)
+        bluetoothManager.emitUpdate(
+            GroBotSensorUpdate(
+                co2ppm: 583,
+                temperatureC: 26.4,
+                humidityPercent: 61.2,
+                airflowSlm: 1.75
+            )
+        )
 
         XCTAssertEqual(viewModel.currentReading.co2ppm, 583, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.temperatureC, 26.4, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.humidityPercent, 61.2, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.airflowSlm, 1.75, accuracy: 0.001)
+    }
+
+    func test_receivedPartialSensorUpdate_keepsUnchangedFields() {
+        let bluetoothManager = MockBluetoothManager()
+        let viewModel = PhotobioreactorViewModel(
+            bluetoothManager: bluetoothManager,
+            shouldStartMockUpdates: false,
+            shouldRequestNotificationPermission: false
+        )
+        let initialReading = viewModel.currentReading
+
+        bluetoothManager.emitUpdate(
+            GroBotSensorUpdate(
+                temperatureC: 27.0,
+                airflowSlm: 0.92
+            )
+        )
+
+        XCTAssertEqual(viewModel.currentReading.co2ppm, initialReading.co2ppm, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.o2ppm, initialReading.o2ppm, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.temperatureC, 27.0, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.humidityPercent, initialReading.humidityPercent, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.airflowSlm, 0.92, accuracy: 0.001)
     }
 }

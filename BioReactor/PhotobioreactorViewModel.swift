@@ -61,6 +61,9 @@ final class PhotobioreactorViewModel: ObservableObject {
     @Published var algaeHealth: String = "Good"
     @Published var pumpOn: Bool = true
     @Published var isConnected: Bool = false
+    @Published var bluetoothStatusMessage: String = "Not connected"
+    @Published var discoveredDeviceName: String?
+    @Published var isScanningForDevice: Bool = false
     @Published var history: [ReactorReading] = []
 
     @Published var thresholds = AlertThresholds()
@@ -106,6 +109,8 @@ final class PhotobioreactorViewModel: ObservableObject {
     private let lightScheduleKey = "pbr_lightSchedule"
     private let dashboardRemindersKey = "pbr_dashboardReminders"
     private let savedRemindersKey = "pbr_savedReminders"
+    private let bluetoothManager: GroBotBluetoothManaging
+    private let shouldUseMockUpdates: Bool
 
     private var hasSentLowTempAlert = false
     private var hasSentHighTempAlert = false
@@ -114,7 +119,14 @@ final class PhotobioreactorViewModel: ObservableObject {
     private var hasSentLowHumidityAlert = false
     private var hasSentHighHumidityAlert = false
 
-    init() {
+    init(
+        bluetoothManager: GroBotBluetoothManaging = GroBotBluetoothManager(),
+        shouldStartMockUpdates: Bool = true,
+        shouldRequestNotificationPermission: Bool = true
+    ) {
+        self.bluetoothManager = bluetoothManager
+        self.shouldUseMockUpdates = shouldStartMockUpdates
+
         let initial = ReactorReading(
             timestamp: Date(),
             co2ppm: 650,
@@ -125,14 +137,19 @@ final class PhotobioreactorViewModel: ObservableObject {
 
         self.currentReading = initial
         self.history = [initial]
+        self.bluetoothManager.delegate = self
 
         loadSavedSettings()
-        requestNotificationPermission()
+        if shouldRequestNotificationPermission {
+            requestNotificationPermission()
+        }
         scheduleSavedReminderNotifications()
         updateAlgaeHealth(using: initial)
         evaluateThresholds(using: initial)
 
-        startMockUpdates()
+        if shouldStartMockUpdates {
+            startMockUpdates()
+        }
     }
 
     deinit {
@@ -171,6 +188,10 @@ final class PhotobioreactorViewModel: ObservableObject {
         )
 
         updateReading(newReading)
+    }
+
+    func scanForDevice() {
+        bluetoothManager.startScan()
     }
 
     func updateReading(_ newReading: ReactorReading) {
@@ -562,5 +583,59 @@ final class PhotobioreactorViewModel: ObservableObject {
             humidityPercent: thresholds.minHumidityPercent - 5.0
         )
         updateReading(reading)
+    }
+}
+
+extension PhotobioreactorViewModel: GroBotBluetoothManagerDelegate {
+    func bluetoothManager(_ manager: GroBotBluetoothManaging, didChangeStatus status: GroBotBluetoothStatus) {
+        switch status {
+        case .idle:
+            isScanningForDevice = false
+            isConnected = false
+            bluetoothStatusMessage = discoveredDeviceName == nil
+                ? "Not connected"
+                : "Disconnected from \(discoveredDeviceName!)"
+            if shouldUseMockUpdates {
+                startMockUpdates()
+            }
+
+        case .scanning:
+            isScanningForDevice = true
+            isConnected = false
+            bluetoothStatusMessage = "Scanning for Gro-Bot..."
+
+        case .connecting(let deviceName):
+            isScanningForDevice = false
+            isConnected = false
+            discoveredDeviceName = deviceName
+            bluetoothStatusMessage = "Connecting to \(deviceName)..."
+
+        case .connected(let deviceName):
+            isScanningForDevice = false
+            isConnected = true
+            discoveredDeviceName = deviceName
+            bluetoothStatusMessage = "Connected to \(deviceName)"
+            stopMockUpdates()
+
+        case .failed(let message):
+            isScanningForDevice = false
+            isConnected = false
+            bluetoothStatusMessage = message
+            if shouldUseMockUpdates {
+                startMockUpdates()
+            }
+        }
+    }
+
+    func bluetoothManager(_ manager: GroBotBluetoothManaging, didReceiveCO2 ppm: Double) {
+        let liveReading = ReactorReading(
+            timestamp: Date(),
+            co2ppm: ppm,
+            o2ppm: currentReading.o2ppm,
+            temperatureC: currentReading.temperatureC,
+            humidityPercent: currentReading.humidityPercent
+        )
+
+        updateReading(liveReading)
     }
 }

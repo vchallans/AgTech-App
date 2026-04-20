@@ -15,7 +15,7 @@ struct ControlsView: View {
     @State private var minTempC: String = ""
     @State private var maxTempC: String = ""
     @State private var maxCO2ppm: String = ""
-    @State private var minO2ppm: String = ""
+    @State private var minOutputO2Percent: String = ""
     @State private var minHumidity: String = ""
     @State private var maxHumidity: String = ""
 
@@ -64,7 +64,7 @@ struct ControlsView: View {
                     }
 
                     HStack {
-                        Text("Max CO₂ (ppm)")
+                        Text("Max Input CO₂ (ppm)")
                         Spacer()
                         TextField("1200", text: $maxCO2ppm)
                             .multilineTextAlignment(.trailing)
@@ -73,9 +73,9 @@ struct ControlsView: View {
                     }
 
                     HStack {
-                        Text("Min O₂ (ppm)")
+                        Text("Min Output O₂ (%)")
                         Spacer()
-                        TextField("200000", text: $minO2ppm)
+                        TextField("19.5", text: $minOutputO2Percent)
                             .multilineTextAlignment(.trailing)
                             .keyboardType(.decimalPad)
                             .focused($isInputFocused)
@@ -238,12 +238,12 @@ struct ControlsView: View {
                         viewModel.triggerHighTempTest()
                     }
 
-                    Button("Trigger High CO₂ Test") {
+                    Button("Trigger High Input CO₂ Test") {
                         isInputFocused = false
                         viewModel.triggerHighCO2Test()
                     }
 
-                    Button("Trigger Low O₂ Test") {
+                    Button("Trigger Low Output O₂ Test") {
                         isInputFocused = false
                         viewModel.triggerLowO2Test()
                     }
@@ -335,7 +335,7 @@ struct ControlsView: View {
         minTempC = String(viewModel.thresholds.minTempC)
         maxTempC = String(viewModel.thresholds.maxTempC)
         maxCO2ppm = String(viewModel.thresholds.maxCO2ppm)
-        minO2ppm = String(viewModel.thresholds.minO2ppm)
+        minOutputO2Percent = String(viewModel.thresholds.minOutputO2Percent)
         minHumidity = String(viewModel.thresholds.minHumidityPercent)
         maxHumidity = String(viewModel.thresholds.maxHumidityPercent)
 
@@ -363,7 +363,7 @@ struct ControlsView: View {
             let minTemp = Double(minTempC),
             let maxTemp = Double(maxTempC),
             let maxCO2 = Double(maxCO2ppm),
-            let minO2 = Double(minO2ppm),
+            let minO2 = Double(minOutputO2Percent),
             let minHum = Double(minHumidity),
             let maxHum = Double(maxHumidity)
         else {
@@ -374,7 +374,7 @@ struct ControlsView: View {
             minTempC: minTemp,
             maxTempC: maxTemp,
             maxCO2ppm: maxCO2,
-            minO2ppm: minO2,
+            minOutputO2Percent: minO2,
             minHumidityPercent: minHum,
             maxHumidityPercent: maxHum
         )

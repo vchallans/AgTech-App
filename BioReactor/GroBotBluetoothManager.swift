@@ -10,15 +10,23 @@ enum GroBotBluetoothStatus: Equatable {
 }
 
 struct GroBotSensorUpdate: Equatable {
-    var co2ppm: Double? = nil
-    var temperatureC: Double? = nil
-    var humidityPercent: Double? = nil
+    var inputCo2ppm: Double? = nil
+    var inputTemperatureC: Double? = nil
+    var inputHumidityPercent: Double? = nil
+    var outputCo2ppm: Double? = nil
+    var outputTemperatureC: Double? = nil
+    var outputHumidityPercent: Double? = nil
+    var outputO2Percent: Double? = nil
     var airflowSlm: Double? = nil
 
     var isEmpty: Bool {
-        co2ppm == nil &&
-        temperatureC == nil &&
-        humidityPercent == nil &&
+        inputCo2ppm == nil &&
+        inputTemperatureC == nil &&
+        inputHumidityPercent == nil &&
+        outputCo2ppm == nil &&
+        outputTemperatureC == nil &&
+        outputHumidityPercent == nil &&
+        outputO2Percent == nil &&
         airflowSlm == nil
     }
 }
@@ -37,10 +45,14 @@ final class GroBotBluetoothManager: NSObject, GroBotBluetoothManaging {
     weak var delegate: GroBotBluetoothManagerDelegate?
 
     private static let serviceUUID = CBUUID(string: "B7E20001-4A12-4F5A-A8D4-9C3B7E110001")
-    private static let co2CharacteristicUUID = CBUUID(string: "B7E20002-4A12-4F5A-A8D4-9C3B7E110001")
-    private static let temperatureCharacteristicUUID = CBUUID(string: "B7E20003-4A12-4F5A-A8D4-9C3B7E110001")
-    private static let humidityCharacteristicUUID = CBUUID(string: "B7E20004-4A12-4F5A-A8D4-9C3B7E110001")
+    private static let inputCo2CharacteristicUUID = CBUUID(string: "B7E20002-4A12-4F5A-A8D4-9C3B7E110001")
+    private static let inputTemperatureCharacteristicUUID = CBUUID(string: "B7E20003-4A12-4F5A-A8D4-9C3B7E110001")
+    private static let inputHumidityCharacteristicUUID = CBUUID(string: "B7E20004-4A12-4F5A-A8D4-9C3B7E110001")
     private static let airflowCharacteristicUUID = CBUUID(string: "B7E20005-4A12-4F5A-A8D4-9C3B7E110001")
+    private static let outputCo2CharacteristicUUID = CBUUID(string: "B7E20006-4A12-4F5A-A8D4-9C3B7E110001")
+    private static let outputTemperatureCharacteristicUUID = CBUUID(string: "B7E20007-4A12-4F5A-A8D4-9C3B7E110001")
+    private static let outputHumidityCharacteristicUUID = CBUUID(string: "B7E20008-4A12-4F5A-A8D4-9C3B7E110001")
+    private static let outputO2CharacteristicUUID = CBUUID(string: "B7E20009-4A12-4F5A-A8D4-9C3B7E110001")
     private static let scanTimeoutSeconds: TimeInterval = 8.0
     private static let expectedNamePrefix = "BioReactor"
 
@@ -185,29 +197,53 @@ final class GroBotBluetoothManager: NSObject, GroBotBluetoothManaging {
         }
 
         switch characteristic.uuid {
-        case Self.co2CharacteristicUUID:
-            guard let co2ppm = parseCO2Value(from: value) else {
+        case Self.inputCo2CharacteristicUUID:
+            guard let inputCo2ppm = parseCO2Value(from: value) else {
                 return nil
             }
-            return GroBotSensorUpdate(co2ppm: co2ppm)
+            return GroBotSensorUpdate(inputCo2ppm: inputCo2ppm)
 
-        case Self.temperatureCharacteristicUUID:
-            guard let temperatureC = parseFloatValue(from: value) else {
+        case Self.inputTemperatureCharacteristicUUID:
+            guard let inputTemperatureC = parseFloatValue(from: value) else {
                 return nil
             }
-            return GroBotSensorUpdate(temperatureC: temperatureC)
+            return GroBotSensorUpdate(inputTemperatureC: inputTemperatureC)
 
-        case Self.humidityCharacteristicUUID:
-            guard let humidityPercent = parseFloatValue(from: value) else {
+        case Self.inputHumidityCharacteristicUUID:
+            guard let inputHumidityPercent = parseFloatValue(from: value) else {
                 return nil
             }
-            return GroBotSensorUpdate(humidityPercent: humidityPercent)
+            return GroBotSensorUpdate(inputHumidityPercent: inputHumidityPercent)
 
         case Self.airflowCharacteristicUUID:
             guard let airflowSlm = parseFloatValue(from: value) else {
                 return nil
             }
             return GroBotSensorUpdate(airflowSlm: airflowSlm)
+
+        case Self.outputCo2CharacteristicUUID:
+            guard let outputCo2ppm = parseCO2Value(from: value) else {
+                return nil
+            }
+            return GroBotSensorUpdate(outputCo2ppm: outputCo2ppm)
+
+        case Self.outputTemperatureCharacteristicUUID:
+            guard let outputTemperatureC = parseFloatValue(from: value) else {
+                return nil
+            }
+            return GroBotSensorUpdate(outputTemperatureC: outputTemperatureC)
+
+        case Self.outputHumidityCharacteristicUUID:
+            guard let outputHumidityPercent = parseFloatValue(from: value) else {
+                return nil
+            }
+            return GroBotSensorUpdate(outputHumidityPercent: outputHumidityPercent)
+
+        case Self.outputO2CharacteristicUUID:
+            guard let outputO2Percent = parseFloatValue(from: value) else {
+                return nil
+            }
+            return GroBotSensorUpdate(outputO2Percent: outputO2Percent)
 
         default:
             return nil
@@ -290,10 +326,14 @@ extension GroBotBluetoothManager: CBPeripheralDelegate {
             .forEach {
                 peripheral.discoverCharacteristics(
                     [
-                        Self.co2CharacteristicUUID,
-                        Self.temperatureCharacteristicUUID,
-                        Self.humidityCharacteristicUUID,
-                        Self.airflowCharacteristicUUID
+                        Self.inputCo2CharacteristicUUID,
+                        Self.inputTemperatureCharacteristicUUID,
+                        Self.inputHumidityCharacteristicUUID,
+                        Self.airflowCharacteristicUUID,
+                        Self.outputCo2CharacteristicUUID,
+                        Self.outputTemperatureCharacteristicUUID,
+                        Self.outputHumidityCharacteristicUUID,
+                        Self.outputO2CharacteristicUUID
                     ],
                     for: $0
                 )
@@ -313,10 +353,14 @@ extension GroBotBluetoothManager: CBPeripheralDelegate {
 
         service.characteristics?
             .filter {
-                $0.uuid == Self.co2CharacteristicUUID ||
-                $0.uuid == Self.temperatureCharacteristicUUID ||
-                $0.uuid == Self.humidityCharacteristicUUID ||
-                $0.uuid == Self.airflowCharacteristicUUID
+                $0.uuid == Self.inputCo2CharacteristicUUID ||
+                $0.uuid == Self.inputTemperatureCharacteristicUUID ||
+                $0.uuid == Self.inputHumidityCharacteristicUUID ||
+                $0.uuid == Self.airflowCharacteristicUUID ||
+                $0.uuid == Self.outputCo2CharacteristicUUID ||
+                $0.uuid == Self.outputTemperatureCharacteristicUUID ||
+                $0.uuid == Self.outputHumidityCharacteristicUUID ||
+                $0.uuid == Self.outputO2CharacteristicUUID
             }
             .forEach {
                 peripheral.setNotifyValue(true, for: $0)

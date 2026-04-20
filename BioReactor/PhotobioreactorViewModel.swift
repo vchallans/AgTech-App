@@ -13,19 +13,29 @@ import UserNotifications
 struct ReactorReading: Identifiable {
     let id = UUID()
     let timestamp: Date
-    let co2ppm: Double
-    let o2ppm: Double
-    let temperatureC: Double
-    let humidityPercent: Double
+    let inputCo2ppm: Double
+    let inputTemperatureC: Double
+    let inputHumidityPercent: Double
+    let outputCo2ppm: Double
+    let outputTemperatureC: Double
+    let outputHumidityPercent: Double
+    let outputO2Percent: Double
     let airflowSlm: Double
+
+    var co2ppm: Double { inputCo2ppm }
+    var temperatureC: Double { inputTemperatureC }
+    var humidityPercent: Double { inputHumidityPercent }
 
     func applying(_ update: GroBotSensorUpdate, at timestamp: Date = Date()) -> ReactorReading {
         ReactorReading(
             timestamp: timestamp,
-            co2ppm: update.co2ppm ?? co2ppm,
-            o2ppm: o2ppm,
-            temperatureC: update.temperatureC ?? temperatureC,
-            humidityPercent: update.humidityPercent ?? humidityPercent,
+            inputCo2ppm: update.inputCo2ppm ?? inputCo2ppm,
+            inputTemperatureC: update.inputTemperatureC ?? inputTemperatureC,
+            inputHumidityPercent: update.inputHumidityPercent ?? inputHumidityPercent,
+            outputCo2ppm: update.outputCo2ppm ?? outputCo2ppm,
+            outputTemperatureC: update.outputTemperatureC ?? outputTemperatureC,
+            outputHumidityPercent: update.outputHumidityPercent ?? outputHumidityPercent,
+            outputO2Percent: update.outputO2Percent ?? outputO2Percent,
             airflowSlm: update.airflowSlm ?? airflowSlm
         )
     }
@@ -35,9 +45,18 @@ struct AlertThresholds: Codable {
     var minTempC: Double = 20.0
     var maxTempC: Double = 30.0
     var maxCO2ppm: Double = 1200.0
-    var minO2ppm: Double = 200000.0
+    var minOutputO2Percent: Double = 19.5
     var minHumidityPercent: Double = 35.0
     var maxHumidityPercent: Double = 75.0
+
+    enum CodingKeys: String, CodingKey {
+        case minTempC
+        case maxTempC
+        case maxCO2ppm
+        case minOutputO2Percent = "minO2ppm"
+        case minHumidityPercent
+        case maxHumidityPercent
+    }
 }
 
 struct PumpSchedule: Codable {
@@ -143,10 +162,13 @@ final class PhotobioreactorViewModel: ObservableObject {
 
         let initial = ReactorReading(
             timestamp: Date(),
-            co2ppm: 650,
-            o2ppm: 210000,
-            temperatureC: 24.0,
-            humidityPercent: 52.0,
+            inputCo2ppm: 650,
+            inputTemperatureC: 24.0,
+            inputHumidityPercent: 52.0,
+            outputCo2ppm: 540,
+            outputTemperatureC: 24.0,
+            outputHumidityPercent: 52.0,
+            outputO2Percent: 20.9,
             airflowSlm: .nan
         )
 
@@ -189,18 +211,24 @@ final class PhotobioreactorViewModel: ObservableObject {
     }
 
     private func generateNextReading() {
-        let newCO2 = max(400, min(2000, currentReading.co2ppm + Double.random(in: -25...25)))
-        let newO2 = max(200000, min(220000, currentReading.o2ppm + Double.random(in: -500...500)))
-        let newTemp = max(18, min(32, currentReading.temperatureC + Double.random(in: -0.3...0.3)))
-        let newHumidity = max(30, min(80, currentReading.humidityPercent + Double.random(in: -1.0...1.0)))
+        let newInputCO2 = max(400, min(2000, currentReading.inputCo2ppm + Double.random(in: -25...25)))
+        let newInputTemp = max(18, min(32, currentReading.inputTemperatureC + Double.random(in: -0.3...0.3)))
+        let newInputHumidity = max(30, min(80, currentReading.inputHumidityPercent + Double.random(in: -1.0...1.0)))
+        let newOutputCO2 = max(300, min(2000, currentReading.outputCo2ppm + Double.random(in: -30...30)))
+        let newOutputTemp = max(18, min(32, currentReading.outputTemperatureC + Double.random(in: -0.3...0.3)))
+        let newOutputHumidity = max(30, min(80, currentReading.outputHumidityPercent + Double.random(in: -1.0...1.0)))
+        let newOutputO2 = max(0, min(100, currentReading.outputO2Percent + Double.random(in: -0.2...0.2)))
         let newAirflow = max(0, min(3, currentReading.airflowSlm.isFinite ? currentReading.airflowSlm + Double.random(in: -0.1...0.1) : 1.0))
 
         let newReading = ReactorReading(
             timestamp: Date(),
-            co2ppm: newCO2,
-            o2ppm: newO2,
-            temperatureC: newTemp,
-            humidityPercent: newHumidity,
+            inputCo2ppm: newInputCO2,
+            inputTemperatureC: newInputTemp,
+            inputHumidityPercent: newInputHumidity,
+            outputCo2ppm: newOutputCO2,
+            outputTemperatureC: newOutputTemp,
+            outputHumidityPercent: newOutputHumidity,
+            outputO2Percent: newOutputO2,
             airflowSlm: newAirflow
         )
 
@@ -246,13 +274,13 @@ final class PhotobioreactorViewModel: ObservableObject {
     // MARK: - Algae Health
 
     private func updateAlgaeHealth(using reading: ReactorReading) {
-        if reading.co2ppm >= 500 && reading.co2ppm <= 1200 &&
-            reading.temperatureC >= 22 && reading.temperatureC <= 28 &&
-            reading.humidityPercent >= 40 && reading.humidityPercent <= 65 {
+        if reading.inputCo2ppm >= 500 && reading.inputCo2ppm <= 1200 &&
+            reading.inputTemperatureC >= 22 && reading.inputTemperatureC <= 28 &&
+            reading.inputHumidityPercent >= 40 && reading.inputHumidityPercent <= 65 {
             algaeHealth = "Good"
-        } else if reading.co2ppm >= 450 && reading.co2ppm <= 1500 &&
-                    reading.temperatureC >= 20 && reading.temperatureC <= 30 &&
-                    reading.humidityPercent >= 35 && reading.humidityPercent <= 75 {
+        } else if reading.inputCo2ppm >= 450 && reading.inputCo2ppm <= 1500 &&
+                    reading.inputTemperatureC >= 20 && reading.inputTemperatureC <= 30 &&
+                    reading.inputHumidityPercent >= 35 && reading.inputHumidityPercent <= 75 {
             algaeHealth = "Monitor"
         } else {
             algaeHealth = "Poor"
@@ -264,12 +292,12 @@ final class PhotobioreactorViewModel: ObservableObject {
     func evaluateThresholds(using reading: ReactorReading) {
         var alerts: [String] = []
 
-        if reading.temperatureC < thresholds.minTempC {
-            alerts.append("Temperature too low")
+        if reading.inputTemperatureC < thresholds.minTempC {
+            alerts.append("Input temperature too low")
             if !hasSentLowTempAlert {
                 sendImmediateNotification(
                     title: "Bioreactor Alert",
-                    body: "Temperature is too low: \(String(format: "%.1f", reading.temperatureC))°C"
+                    body: "Input temperature is too low: \(String(format: "%.1f", reading.inputTemperatureC))°C"
                 )
                 hasSentLowTempAlert = true
             }
@@ -277,12 +305,12 @@ final class PhotobioreactorViewModel: ObservableObject {
             hasSentLowTempAlert = false
         }
 
-        if reading.temperatureC > thresholds.maxTempC {
-            alerts.append("Temperature too high")
+        if reading.inputTemperatureC > thresholds.maxTempC {
+            alerts.append("Input temperature too high")
             if !hasSentHighTempAlert {
                 sendImmediateNotification(
                     title: "Bioreactor Alert",
-                    body: "Temperature is too high: \(String(format: "%.1f", reading.temperatureC))°C"
+                    body: "Input temperature is too high: \(String(format: "%.1f", reading.inputTemperatureC))°C"
                 )
                 hasSentHighTempAlert = true
             }
@@ -290,12 +318,12 @@ final class PhotobioreactorViewModel: ObservableObject {
             hasSentHighTempAlert = false
         }
 
-        if reading.co2ppm > thresholds.maxCO2ppm {
-            alerts.append("CO₂ too high")
+        if reading.inputCo2ppm > thresholds.maxCO2ppm {
+            alerts.append("Input CO₂ too high")
             if !hasSentHighCO2Alert {
                 sendImmediateNotification(
                     title: "Bioreactor Alert",
-                    body: "CO₂ is too high: \(Int(reading.co2ppm)) ppm"
+                    body: "Input CO₂ is too high: \(Int(reading.inputCo2ppm)) ppm"
                 )
                 hasSentHighCO2Alert = true
             }
@@ -303,12 +331,12 @@ final class PhotobioreactorViewModel: ObservableObject {
             hasSentHighCO2Alert = false
         }
 
-        if reading.o2ppm < thresholds.minO2ppm {
-            alerts.append("O₂ too low")
+        if reading.outputO2Percent < thresholds.minOutputO2Percent {
+            alerts.append("Output O₂ too low")
             if !hasSentLowO2Alert {
                 sendImmediateNotification(
                     title: "Bioreactor Alert",
-                    body: "O₂ is too low: \(Int(reading.o2ppm)) ppm"
+                    body: "Output O₂ is too low: \(String(format: "%.1f", reading.outputO2Percent))%"
                 )
                 hasSentLowO2Alert = true
             }
@@ -316,12 +344,12 @@ final class PhotobioreactorViewModel: ObservableObject {
             hasSentLowO2Alert = false
         }
 
-        if reading.humidityPercent < thresholds.minHumidityPercent {
-            alerts.append("Humidity too low")
+        if reading.inputHumidityPercent < thresholds.minHumidityPercent {
+            alerts.append("Input humidity too low")
             if !hasSentLowHumidityAlert {
                 sendImmediateNotification(
                     title: "Bioreactor Alert",
-                    body: "Humidity is too low: \(String(format: "%.1f", reading.humidityPercent))%"
+                    body: "Input humidity is too low: \(String(format: "%.1f", reading.inputHumidityPercent))%"
                 )
                 hasSentLowHumidityAlert = true
             }
@@ -329,12 +357,12 @@ final class PhotobioreactorViewModel: ObservableObject {
             hasSentLowHumidityAlert = false
         }
 
-        if reading.humidityPercent > thresholds.maxHumidityPercent {
-            alerts.append("Humidity too high")
+        if reading.inputHumidityPercent > thresholds.maxHumidityPercent {
+            alerts.append("Input humidity too high")
             if !hasSentHighHumidityAlert {
                 sendImmediateNotification(
                     title: "Bioreactor Alert",
-                    body: "Humidity is too high: \(String(format: "%.1f", reading.humidityPercent))%"
+                    body: "Input humidity is too high: \(String(format: "%.1f", reading.inputHumidityPercent))%"
                 )
                 hasSentHighHumidityAlert = true
             }
@@ -349,14 +377,14 @@ final class PhotobioreactorViewModel: ObservableObject {
         minTempC: Double,
         maxTempC: Double,
         maxCO2ppm: Double,
-        minO2ppm: Double,
+        minOutputO2Percent: Double,
         minHumidityPercent: Double,
         maxHumidityPercent: Double
     ) {
         thresholds.minTempC = minTempC
         thresholds.maxTempC = maxTempC
         thresholds.maxCO2ppm = maxCO2ppm
-        thresholds.minO2ppm = minO2ppm
+        thresholds.minOutputO2Percent = minOutputO2Percent
         thresholds.minHumidityPercent = minHumidityPercent
         thresholds.maxHumidityPercent = maxHumidityPercent
 
@@ -581,10 +609,13 @@ final class PhotobioreactorViewModel: ObservableObject {
     func triggerHighTempTest() {
         let reading = ReactorReading(
             timestamp: Date(),
-            co2ppm: currentReading.co2ppm,
-            o2ppm: currentReading.o2ppm,
-            temperatureC: thresholds.maxTempC + 3.0,
-            humidityPercent: currentReading.humidityPercent,
+            inputCo2ppm: currentReading.inputCo2ppm,
+            inputTemperatureC: thresholds.maxTempC + 3.0,
+            inputHumidityPercent: currentReading.inputHumidityPercent,
+            outputCo2ppm: currentReading.outputCo2ppm,
+            outputTemperatureC: currentReading.outputTemperatureC,
+            outputHumidityPercent: currentReading.outputHumidityPercent,
+            outputO2Percent: currentReading.outputO2Percent,
             airflowSlm: currentReading.airflowSlm
         )
         updateReading(reading)
@@ -593,10 +624,13 @@ final class PhotobioreactorViewModel: ObservableObject {
     func triggerHighCO2Test() {
         let reading = ReactorReading(
             timestamp: Date(),
-            co2ppm: thresholds.maxCO2ppm + 300.0,
-            o2ppm: currentReading.o2ppm,
-            temperatureC: currentReading.temperatureC,
-            humidityPercent: currentReading.humidityPercent,
+            inputCo2ppm: thresholds.maxCO2ppm + 300.0,
+            inputTemperatureC: currentReading.inputTemperatureC,
+            inputHumidityPercent: currentReading.inputHumidityPercent,
+            outputCo2ppm: currentReading.outputCo2ppm,
+            outputTemperatureC: currentReading.outputTemperatureC,
+            outputHumidityPercent: currentReading.outputHumidityPercent,
+            outputO2Percent: currentReading.outputO2Percent,
             airflowSlm: currentReading.airflowSlm
         )
         updateReading(reading)
@@ -605,10 +639,13 @@ final class PhotobioreactorViewModel: ObservableObject {
     func triggerLowO2Test() {
         let reading = ReactorReading(
             timestamp: Date(),
-            co2ppm: currentReading.co2ppm,
-            o2ppm: thresholds.minO2ppm - 5000.0,
-            temperatureC: currentReading.temperatureC,
-            humidityPercent: currentReading.humidityPercent,
+            inputCo2ppm: currentReading.inputCo2ppm,
+            inputTemperatureC: currentReading.inputTemperatureC,
+            inputHumidityPercent: currentReading.inputHumidityPercent,
+            outputCo2ppm: currentReading.outputCo2ppm,
+            outputTemperatureC: currentReading.outputTemperatureC,
+            outputHumidityPercent: currentReading.outputHumidityPercent,
+            outputO2Percent: thresholds.minOutputO2Percent - 1.0,
             airflowSlm: currentReading.airflowSlm
         )
         updateReading(reading)
@@ -617,10 +654,13 @@ final class PhotobioreactorViewModel: ObservableObject {
     func triggerLowHumidityTest() {
         let reading = ReactorReading(
             timestamp: Date(),
-            co2ppm: currentReading.co2ppm,
-            o2ppm: currentReading.o2ppm,
-            temperatureC: currentReading.temperatureC,
-            humidityPercent: thresholds.minHumidityPercent - 5.0,
+            inputCo2ppm: currentReading.inputCo2ppm,
+            inputTemperatureC: currentReading.inputTemperatureC,
+            inputHumidityPercent: thresholds.minHumidityPercent - 5.0,
+            outputCo2ppm: currentReading.outputCo2ppm,
+            outputTemperatureC: currentReading.outputTemperatureC,
+            outputHumidityPercent: currentReading.outputHumidityPercent,
+            outputO2Percent: currentReading.outputO2Percent,
             airflowSlm: currentReading.airflowSlm
         )
         updateReading(reading)

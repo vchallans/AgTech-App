@@ -18,10 +18,27 @@ struct DashboardView: View {
                     .font(.largeTitle.bold())
 
                 VStack(spacing: 12) {
-                    readingRow(title: "CO₂", value: "\(Int(viewModel.currentReading.co2ppm)) ppm")
-                    readingRow(title: "O₂", value: "\(Int(viewModel.currentReading.o2ppm)) ppm")
-                    readingRow(title: "Temperature", value: "\(String(format: "%.1f", viewModel.currentReading.temperatureC)) °C")
-                    readingRow(title: "Humidity", value: "\(String(format: "%.1f", viewModel.currentReading.humidityPercent)) %")
+                    Text("Input Sensor Data")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    readingRow(title: "CO₂", value: "\(Int(viewModel.currentReading.inputCo2ppm)) ppm")
+                    readingRow(title: "Temperature", value: "\(String(format: "%.1f", viewModel.currentReading.inputTemperatureC)) °C")
+                    readingRow(title: "Humidity", value: "\(String(format: "%.1f", viewModel.currentReading.inputHumidityPercent)) %")
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(16)
+
+                VStack(spacing: 12) {
+                    Text("Output Sensor Data")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    readingRow(title: "CO₂", value: "\(Int(viewModel.currentReading.outputCo2ppm)) ppm")
+                    readingRow(title: "O₂", value: "\(String(format: "%.1f", viewModel.currentReading.outputO2Percent)) %")
+                    readingRow(title: "Temperature", value: "\(String(format: "%.1f", viewModel.currentReading.outputTemperatureC)) °C")
+                    readingRow(title: "Humidity", value: "\(String(format: "%.1f", viewModel.currentReading.outputHumidityPercent)) %")
                     readingRow(title: "Airflow", value: airflowText)
                 }
                 .padding()

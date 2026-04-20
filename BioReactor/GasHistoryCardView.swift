@@ -11,11 +11,11 @@ struct GasHistoryCardView: View {
     let history: [ReactorReading]
 
     private var baselineCO2: Double {
-        history.first?.co2ppm ?? 1
+        history.first?.outputCo2ppm ?? 1
     }
 
     private var baselineO2: Double {
-        history.first?.o2ppm ?? 1
+        history.first?.outputO2Percent ?? 1
     }
 
     private var latestReading: ReactorReading? {
@@ -28,9 +28,9 @@ struct GasHistoryCardView: View {
         let previous = history[history.count - 2]
         let latest = history[history.count - 1]
 
-        if latest.co2ppm < previous.co2ppm && latest.o2ppm > previous.o2ppm {
+        if latest.outputCo2ppm < previous.outputCo2ppm && latest.outputO2Percent > previous.outputO2Percent {
             return "Photosynthesis trend: CO₂ down, O₂ up"
-        } else if latest.co2ppm > previous.co2ppm && latest.o2ppm < previous.o2ppm {
+        } else if latest.outputCo2ppm > previous.outputCo2ppm && latest.outputO2Percent < previous.outputO2Percent {
             return "Respiration trend: CO₂ up, O₂ down"
         } else {
             return "Gas balance stable"
@@ -40,7 +40,7 @@ struct GasHistoryCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("CO₂ vs O₂ History")
+                Text("Output CO₂ vs O₂ History")
                     .font(.headline)
 
                 Spacer()
@@ -55,7 +55,7 @@ struct GasHistoryCardView: View {
                         Text("CO₂")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("\(Int(latest.co2ppm)) ppm")
+                        Text("\(Int(latest.outputCo2ppm)) ppm")
                             .font(.title3.weight(.semibold))
                     }
 
@@ -63,7 +63,7 @@ struct GasHistoryCardView: View {
                         Text("O₂")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("\(Int(latest.o2ppm)) ppm")
+                        Text("\(String(format: "%.1f", latest.outputO2Percent)) %")
                             .font(.title3.weight(.semibold))
                     }
                 }
@@ -74,27 +74,27 @@ struct GasHistoryCardView: View {
                     ForEach(history) { reading in
                         LineMark(
                             x: .value("Time", reading.timestamp),
-                            y: .value("CO₂ (% baseline)", (reading.co2ppm / baselineCO2) * 100)
+                            y: .value("CO₂ (% baseline)", (reading.outputCo2ppm / baselineCO2) * 100)
                         )
                         .foregroundStyle(.green)
                         .lineStyle(StrokeStyle(lineWidth: 2))
 
                         PointMark(
                             x: .value("Time", reading.timestamp),
-                            y: .value("CO₂ (% baseline)", (reading.co2ppm / baselineCO2) * 100)
+                            y: .value("CO₂ (% baseline)", (reading.outputCo2ppm / baselineCO2) * 100)
                         )
                         .foregroundStyle(.green)
 
                         LineMark(
                             x: .value("Time", reading.timestamp),
-                            y: .value("O₂ (% baseline)", (reading.o2ppm / baselineO2) * 100)
+                            y: .value("O₂ (% baseline)", (reading.outputO2Percent / baselineO2) * 100)
                         )
                         .foregroundStyle(.blue)
                         .lineStyle(StrokeStyle(lineWidth: 2))
 
                         PointMark(
                             x: .value("Time", reading.timestamp),
-                            y: .value("O₂ (% baseline)", (reading.o2ppm / baselineO2) * 100)
+                            y: .value("O₂ (% baseline)", (reading.outputO2Percent / baselineO2) * 100)
                         )
                         .foregroundStyle(.blue)
                     }

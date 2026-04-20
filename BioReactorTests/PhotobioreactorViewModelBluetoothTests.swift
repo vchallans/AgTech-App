@@ -50,7 +50,7 @@ final class PhotobioreactorViewModelBluetoothTests: XCTestCase {
         XCTAssertEqual(viewModel.bluetoothStatusMessage, "Connected to BioReactor-ESP32")
     }
 
-    func test_receivedSensorUpdate_mergesMultipleLiveFieldsIntoCurrentReading() {
+    func test_receivedSensorUpdate_mergesInputAndOutputFieldsIntoCurrentReading() {
         let bluetoothManager = MockBluetoothManager()
         let viewModel = PhotobioreactorViewModel(
             bluetoothManager: bluetoothManager,
@@ -60,20 +60,28 @@ final class PhotobioreactorViewModelBluetoothTests: XCTestCase {
 
         bluetoothManager.emitUpdate(
             GroBotSensorUpdate(
-                co2ppm: 583,
-                temperatureC: 26.4,
-                humidityPercent: 61.2,
+                inputCo2ppm: 583,
+                inputTemperatureC: 26.4,
+                inputHumidityPercent: 61.2,
+                outputCo2ppm: 742,
+                outputTemperatureC: 25.1,
+                outputHumidityPercent: 58.4,
+                outputO2Percent: 20.9,
                 airflowSlm: 1.75
             )
         )
 
-        XCTAssertEqual(viewModel.currentReading.co2ppm, 583, accuracy: 0.001)
-        XCTAssertEqual(viewModel.currentReading.temperatureC, 26.4, accuracy: 0.001)
-        XCTAssertEqual(viewModel.currentReading.humidityPercent, 61.2, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.inputCo2ppm, 583, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.inputTemperatureC, 26.4, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.inputHumidityPercent, 61.2, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.outputCo2ppm, 742, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.outputTemperatureC, 25.1, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.outputHumidityPercent, 58.4, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.outputO2Percent, 20.9, accuracy: 0.001)
         XCTAssertEqual(viewModel.currentReading.airflowSlm, 1.75, accuracy: 0.001)
     }
 
-    func test_receivedPartialSensorUpdate_keepsUnchangedFields() {
+    func test_receivedPartialSensorUpdate_keepsUnchangedFieldsAcrossSections() {
         let bluetoothManager = MockBluetoothManager()
         let viewModel = PhotobioreactorViewModel(
             bluetoothManager: bluetoothManager,
@@ -84,15 +92,18 @@ final class PhotobioreactorViewModelBluetoothTests: XCTestCase {
 
         bluetoothManager.emitUpdate(
             GroBotSensorUpdate(
-                temperatureC: 27.0,
-                airflowSlm: 0.92
+                outputCo2ppm: 801,
+                outputO2Percent: 19.4
             )
         )
 
-        XCTAssertEqual(viewModel.currentReading.co2ppm, initialReading.co2ppm, accuracy: 0.001)
-        XCTAssertEqual(viewModel.currentReading.o2ppm, initialReading.o2ppm, accuracy: 0.001)
-        XCTAssertEqual(viewModel.currentReading.temperatureC, 27.0, accuracy: 0.001)
-        XCTAssertEqual(viewModel.currentReading.humidityPercent, initialReading.humidityPercent, accuracy: 0.001)
-        XCTAssertEqual(viewModel.currentReading.airflowSlm, 0.92, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.inputCo2ppm, initialReading.inputCo2ppm, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.inputTemperatureC, initialReading.inputTemperatureC, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.inputHumidityPercent, initialReading.inputHumidityPercent, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.outputCo2ppm, 801, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.outputTemperatureC, initialReading.outputTemperatureC, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.outputHumidityPercent, initialReading.outputHumidityPercent, accuracy: 0.001)
+        XCTAssertEqual(viewModel.currentReading.outputO2Percent, 19.4, accuracy: 0.001)
+        XCTAssertTrue(viewModel.currentReading.airflowSlm.isNaN)
     }
 }

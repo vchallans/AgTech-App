@@ -5,7 +5,6 @@
 //  Created by Vidhi Challani on 3/22/26.
 //
 
-
 import SwiftUI
 
 struct DashboardView: View {
@@ -27,6 +26,7 @@ struct DashboardView: View {
                     readingRow(title: "Humidity", value: "\(String(format: "%.1f", viewModel.currentReading.inputHumidityPercent)) %")
                 }
                 .padding()
+                .frame(maxWidth: .infinity)
                 .background(Color(.systemGray6))
                 .cornerRadius(16)
 
@@ -42,6 +42,7 @@ struct DashboardView: View {
                     readingRow(title: "Airflow", value: airflowText)
                 }
                 .padding()
+                .frame(maxWidth: .infinity)
                 .background(Color(.systemGray6))
                 .cornerRadius(16)
 
@@ -125,24 +126,32 @@ struct DashboardView: View {
                     Text("Maintenance Reminders")
                         .font(.headline)
 
-                    if viewModel.dashboardReminders.filter({ $0.isEnabled }).isEmpty {
+                    let enabledReminders = viewModel.savedReminders.filter { $0.isEnabled }
+
+                    if enabledReminders.isEmpty {
                         Text("No enabled reminders.")
                             .foregroundColor(.secondary)
                     } else {
-                        ForEach(viewModel.dashboardReminders.filter { $0.isEnabled }) { reminder in
+                        ForEach(enabledReminders) { reminder in
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(reminder.title)
                                     .font(.subheadline.bold())
 
-                                Text(reminder.body)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                if !reminder.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    Text(reminder.body)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
 
                                 Text(reminderTimeText(reminder))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
                             .padding(.vertical, 4)
+
+                            if reminder.id != enabledReminders.last?.id {
+                                Divider()
+                            }
                         }
                     }
                 }
@@ -150,9 +159,6 @@ struct DashboardView: View {
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(16)
-
-                // Uncomment this again if your history card is working
-                // GasHistoryCardView(history: viewModel.history)
             }
             .padding()
         }

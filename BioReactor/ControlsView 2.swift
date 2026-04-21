@@ -1,5 +1,5 @@
 //
-//  ControlsView 2.swift
+//  ControlsView.swift
 //  BioReactor
 //
 //  Created by Vidhi Challani on 3/22/26.
@@ -33,74 +33,65 @@ struct ControlsView: View {
         NavigationView {
             Form {
                 Section("Air Pump Manual Control") {
-                    Toggle("Air Pump", isOn: $viewModel.pumpOn)
+                    Toggle(
+                        "Air Pump",
+                        isOn: Binding(
+                            get: { viewModel.pumpOn },
+                            set: { newValue in
+                                viewModel.setPumpEnabled(newValue)
+                            }
+                        )
+                    )
 
-                    Text("Pump is currently \(viewModel.pumpOn ? "On" : "Off")")
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Pump Speed")
+                            Spacer()
+                            Text("\(Int(viewModel.pumpPercent))%")
+                                .foregroundColor(.secondary)
+                        }
+
+                        Slider(
+                            value: Binding(
+                                get: { viewModel.pumpPercent },
+                                set: { newValue in
+                                    viewModel.pumpPercent = newValue
+                                    viewModel.pumpOn = newValue > 0
+                                }
+                            ),
+                            in: 0...100,
+                            step: 1,
+                            onEditingChanged: { editing in
+                                if !editing {
+                                    viewModel.setPumpPercent(UInt8(viewModel.pumpPercent.rounded()))
+                                }
+                            }
+                        )
+                    }
+
+                    Text(viewModel.pumpOn ? "Pump is currently On" : "Pump is currently Off")
                         .foregroundColor(.secondary)
 
+                    Button("Turn Off Pump") {
+                        viewModel.setPumpPercent(0)
+                    }
+
                     Button("Calibrate Sensor") {
-                        isInputFocused = false
+                        dismissKeyboard()
                         print("Calibrating...")
                     }
                 }
 
                 Section("Alert Thresholds") {
-                    HStack {
-                        Text("Min Temp (°C)")
-                        Spacer()
-                        TextField("20.0", text: $minTempC)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.decimalPad)
-                            .focused($isInputFocused)
-                    }
-
-                    HStack {
-                        Text("Max Temp (°C)")
-                        Spacer()
-                        TextField("30.0", text: $maxTempC)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.decimalPad)
-                            .focused($isInputFocused)
-                    }
-
-                    HStack {
-                        Text("Max Input CO₂ (ppm)")
-                        Spacer()
-                        TextField("1200", text: $maxCO2ppm)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.decimalPad)
-                            .focused($isInputFocused)
-                    }
-
-                    HStack {
-                        Text("Min Output O₂ (%)")
-                        Spacer()
-                        TextField("19.5", text: $minOutputO2Percent)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.decimalPad)
-                            .focused($isInputFocused)
-                    }
-
-                    HStack {
-                        Text("Min Humidity (%)")
-                        Spacer()
-                        TextField("35", text: $minHumidity)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.decimalPad)
-                            .focused($isInputFocused)
-                    }
-
-                    HStack {
-                        Text("Max Humidity (%)")
-                        Spacer()
-                        TextField("75", text: $maxHumidity)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.decimalPad)
-                            .focused($isInputFocused)
-                    }
+                    thresholdRow(title: "Min Temp (°C)", text: $minTempC, placeholder: "20.0")
+                    thresholdRow(title: "Max Temp (°C)", text: $maxTempC, placeholder: "30.0")
+                    thresholdRow(title: "Max Input CO₂ (ppm)", text: $maxCO2ppm, placeholder: "1200")
+                    thresholdRow(title: "Min Output O₂ (%)", text: $minOutputO2Percent, placeholder: "19.5")
+                    thresholdRow(title: "Min Humidity (%)", text: $minHumidity, placeholder: "35")
+                    thresholdRow(title: "Max Humidity (%)", text: $maxHumidity, placeholder: "75")
 
                     Button("Save Thresholds") {
-                        isInputFocused = false
+                        dismissKeyboard()
                         saveThresholds()
                     }
                 }
@@ -114,7 +105,7 @@ struct ControlsView: View {
                     Toggle("Repeat Daily", isOn: $viewModel.pumpSchedule.repeatDaily)
 
                     Button("Save Pump Schedule") {
-                        isInputFocused = false
+                        dismissKeyboard()
 
                         let start = Calendar.current.dateComponents([.hour, .minute], from: pumpStart)
                         let end = Calendar.current.dateComponents([.hour, .minute], from: pumpEnd)
@@ -139,7 +130,7 @@ struct ControlsView: View {
                     Toggle("Repeat Daily", isOn: $viewModel.lightSchedule.repeatDaily)
 
                     Button("Save Light Schedule") {
-                        isInputFocused = false
+                        dismissKeyboard()
 
                         let start = Calendar.current.dateComponents([.hour, .minute], from: lightStart)
                         let end = Calendar.current.dateComponents([.hour, .minute], from: lightEnd)
@@ -167,12 +158,7 @@ struct ControlsView: View {
                     Toggle("Repeat Daily", isOn: $reminderRepeatsDaily)
 
                     Button("Add Reminder") {
-                        addReminderToDashboard()
-                    }
-                    .disabled(reminderFieldsAreInvalid)
-
-                    Button("Save Reminder") {
-                        saveReminderToControls()
+                        addReminder()
                     }
                     .disabled(reminderFieldsAreInvalid)
                 }
@@ -234,22 +220,22 @@ struct ControlsView: View {
 
                 Section("Debug Alerts") {
                     Button("Trigger High Temp Test") {
-                        isInputFocused = false
+                        dismissKeyboard()
                         viewModel.triggerHighTempTest()
                     }
 
                     Button("Trigger High Input CO₂ Test") {
-                        isInputFocused = false
+                        dismissKeyboard()
                         viewModel.triggerHighCO2Test()
                     }
 
                     Button("Trigger Low Output O₂ Test") {
-                        isInputFocused = false
+                        dismissKeyboard()
                         viewModel.triggerLowO2Test()
                     }
 
                     Button("Trigger Low Humidity Test") {
-                        isInputFocused = false
+                        dismissKeyboard()
                         viewModel.triggerLowHumidityTest()
                     }
                 }
@@ -259,12 +245,12 @@ struct ControlsView: View {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") {
-                        isInputFocused = false
+                        dismissKeyboard()
                     }
                 }
             }
             .onTapGesture {
-                isInputFocused = false
+                dismissKeyboard()
             }
             .onAppear {
                 loadFromViewModel()
@@ -273,42 +259,35 @@ struct ControlsView: View {
     }
 
     private var reminderFieldsAreInvalid: Bool {
-        reminderTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-        reminderBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        reminderTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func addReminderToDashboard() {
+    @ViewBuilder
+    private func thresholdRow(title: String, text: Binding<String>, placeholder: String) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            TextField(placeholder, text: text)
+                .multilineTextAlignment(.trailing)
+                .keyboardType(.decimalPad)
+                .focused($isInputFocused)
+        }
+    }
+
+    private func dismissKeyboard() {
         isInputFocused = false
+    }
+
+    private func addReminder() {
+        dismissKeyboard()
 
         let cleanTitle = reminderTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanBody = reminderBody.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !cleanTitle.isEmpty, !cleanBody.isEmpty else { return }
-
-        let comps = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
-
-        viewModel.addReminderToDashboard(
-            title: cleanTitle,
-            body: cleanBody,
-            hour: comps.hour ?? 0,
-            minute: comps.minute ?? 0,
-            repeatsDaily: reminderRepeatsDaily
-        )
-
-        clearReminderFields()
-    }
-
-    private func saveReminderToControls() {
-        isInputFocused = false
-
-        let cleanTitle = reminderTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanBody = reminderBody.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !cleanTitle.isEmpty, !cleanBody.isEmpty else { return }
+        guard !cleanTitle.isEmpty else { return }
 
         let comps = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
 
-        viewModel.saveReminderToControls(
+        viewModel.addMaintenanceReminder(
             title: cleanTitle,
             body: cleanBody,
             hour: comps.hour ?? 0,

@@ -87,6 +87,7 @@ struct MaintenanceReminder: Codable, Identifiable {
     var isEnabled: Bool = true
 }
 
+
 final class PhotobioreactorViewModel: ObservableObject {
     @Published var currentReading: ReactorReading
     @Published var algaeHealth: String = "Good"
@@ -100,17 +101,9 @@ final class PhotobioreactorViewModel: ObservableObject {
     @Published var thresholds = AlertThresholds()
     @Published var pumpSchedule = PumpSchedule()
     @Published var lightSchedule = LightSchedule()
+    @Published var pumpPercent: Double = 70
 
-    @Published var dashboardReminders: [MaintenanceReminder] = [
-        MaintenanceReminder(
-            title: "Harvest Algae",
-            body: "Time to harvest algae from the reactor.",
-            hour: 18,
-            minute: 0,
-            repeatsDaily: false,
-            isEnabled: true
-        )
-    ]
+   
 
     @Published var savedReminders: [MaintenanceReminder] = [
         MaintenanceReminder(
@@ -138,7 +131,7 @@ final class PhotobioreactorViewModel: ObservableObject {
     private let thresholdsKey = "pbr_alertThresholds"
     private let pumpScheduleKey = "pbr_pumpSchedule"
     private let lightScheduleKey = "pbr_lightSchedule"
-    private let dashboardRemindersKey = "pbr_dashboardReminders"
+    //private let dashboardRemindersKey = "pbr_dashboardReminders"
     private let savedRemindersKey = "pbr_savedReminders"
     private let bluetoothManager: GroBotBluetoothManaging
     private let shouldUseMockUpdates: Bool
@@ -238,6 +231,16 @@ final class PhotobioreactorViewModel: ObservableObject {
     func scanForDevice() {
         bluetoothManager.startScan()
     }
+    func setPumpEnabled(_ isOn: Bool) {
+        let percent: UInt8 = isOn ? (pumpPercent > 0 ? UInt8(pumpPercent.rounded()) : 70) : 0
+        setPumpPercent(percent)
+    }
+    func setPumpPercent(_ percent: UInt8) {
+        let clamped = min(percent, 100)
+        pumpPercent = Double(clamped)
+        pumpOn = clamped > 0
+        bluetoothManager.setPump(percent: clamped)
+    }
 
     func updateReading(_ newReading: ReactorReading) {
         currentReading = newReading
@@ -267,6 +270,11 @@ final class PhotobioreactorViewModel: ObservableObject {
         }
 
         lastLiveReadingAt = liveReading.timestamp
+        if let pumpPercent = update.pumpPercent {
+            let clamped = max(0.0, min(100.0, pumpPercent))
+            self.pumpPercent = clamped
+            self.pumpOn = clamped > 0
+        }
         updateAlgaeHealth(using: liveReading)
         evaluateThresholds(using: liveReading)
     }
@@ -432,7 +440,27 @@ final class PhotobioreactorViewModel: ObservableObject {
 
     // MARK: - Dashboard Reminders
 
-    func addReminderToDashboard(title: String, body: String, hour: Int, minute: Int, repeatsDaily: Bool) {
+    func addMaintenanceReminder(title: String, body: String, hour: Int, minute: Int, repeatsDaily: Bool) {
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleanTitle.isEmpty else { return }
+
+        let reminder = MaintenanceReminder(
+            title: cleanTitle,
+            body: cleanBody,
+            hour: hour,
+            minute: minute,
+            repeatsDaily: repeatsDaily,
+            isEnabled: true
+        )
+
+        savedReminders.append(reminder)
+        saveSettings()
+        scheduleSavedReminderNotifications()
+    }
+
+    /*func addReminderToDashboard(title: String, body: String, hour: Int, minute: Int, repeatsDaily: Bool) {
         let reminder = MaintenanceReminder(
             title: title,
             body: body,
@@ -461,7 +489,7 @@ final class PhotobioreactorViewModel: ObservableObject {
         savedReminders.append(reminder)
         saveSettings()
         scheduleSavedReminderNotifications()
-    }
+    }*/
 
     func deleteSavedReminder(at offsets: IndexSet) {
         let removed = offsets.map { savedReminders[$0] }
@@ -476,6 +504,7 @@ final class PhotobioreactorViewModel: ObservableObject {
 
     func toggleSavedReminder(_ reminderID: UUID, isEnabled: Bool) {
         guard let index = savedReminders.firstIndex(where: { $0.id == reminderID }) else { return }
+
         savedReminders[index].isEnabled = isEnabled
         saveSettings()
         scheduleSavedReminderNotifications()
@@ -566,9 +595,9 @@ final class PhotobioreactorViewModel: ObservableObject {
             UserDefaults.standard.set(data, forKey: lightScheduleKey)
         }
 
-        if let data = try? encoder.encode(dashboardReminders) {
+        /*if let data = try? encoder.encode(dashboardReminders) {
             UserDefaults.standard.set(data, forKey: dashboardRemindersKey)
-        }
+        }*/
 
         if let data = try? encoder.encode(savedReminders) {
             UserDefaults.standard.set(data, forKey: savedRemindersKey)
@@ -593,10 +622,10 @@ final class PhotobioreactorViewModel: ObservableObject {
             lightSchedule = savedLightSchedule
         }
 
-        if let data = UserDefaults.standard.data(forKey: dashboardRemindersKey),
+        /*if let data = UserDefaults.standard.data(forKey: dashboardRemindersKey),
            let loadedDashboardReminders = try? decoder.decode([MaintenanceReminder].self, from: data) {
             dashboardReminders = loadedDashboardReminders
-        }
+        }*/
 
         if let data = UserDefaults.standard.data(forKey: savedRemindersKey),
            let loadedSavedReminders = try? decoder.decode([MaintenanceReminder].self, from: data) {

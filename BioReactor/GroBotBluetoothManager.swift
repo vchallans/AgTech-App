@@ -18,6 +18,7 @@ struct GroBotSensorUpdate: Equatable {
     var outputHumidityPercent: Double? = nil
     var outputO2Percent: Double? = nil
     var airflowSlm: Double? = nil
+    var pumpPercent: Double? = nil
 
     var isEmpty: Bool {
         inputCo2ppm == nil &&
@@ -27,7 +28,8 @@ struct GroBotSensorUpdate: Equatable {
         outputTemperatureC == nil &&
         outputHumidityPercent == nil &&
         outputO2Percent == nil &&
-        airflowSlm == nil
+        airflowSlm == nil &&
+        pumpPercent == nil
     }
 }
 
@@ -39,6 +41,8 @@ protocol GroBotBluetoothManagerDelegate: AnyObject {
 protocol GroBotBluetoothManaging: AnyObject {
     var delegate: GroBotBluetoothManagerDelegate? { get set }
     func startScan()
+    func setPump(on: Bool)
+    func setPump(percent: UInt8)
 }
 
 final class GroBotBluetoothManager: NSObject, GroBotBluetoothManaging {
@@ -53,11 +57,15 @@ final class GroBotBluetoothManager: NSObject, GroBotBluetoothManaging {
     private static let outputTemperatureCharacteristicUUID = CBUUID(string: "B7E20007-4A12-4F5A-A8D4-9C3B7E110001")
     private static let outputHumidityCharacteristicUUID = CBUUID(string: "B7E20008-4A12-4F5A-A8D4-9C3B7E110001")
     private static let outputO2CharacteristicUUID = CBUUID(string: "B7E20009-4A12-4F5A-A8D4-9C3B7E110001")
+    private static let pumpCommandCharacteristicUUID = CBUUID(string: "B7E2000A-4A12-4F5A-A8D4-9C3B7E110001")
+
     private static let scanTimeoutSeconds: TimeInterval = 8.0
     private static let expectedNamePrefix = "BioReactor"
+    private static let defaultPumpOnPercent: UInt8 = 70
 
     private var centralManager: CBCentralManager!
     private var connectedPeripheral: CBPeripheral?
+    private var pumpCommandCharacteristic: CBCharacteristic?
     private var scanTimeoutWorkItem: DispatchWorkItem?
     private var pendingScan = false
 
@@ -78,9 +86,37 @@ final class GroBotBluetoothManager: NSObject, GroBotBluetoothManaging {
         beginScan()
     }
 
+    func setPump(on: Bool) {
+        let percent: UInt8 = on ? Self.defaultPumpOnPercent : 0
+        setPump(percent: percent)
+    }
+
+    func setPump(percent: UInt8) {
+        guard let peripheral = connectedPeripheral else {
+            print("BLE pump write skipped: no connected peripheral")
+            return
+        }
+
+        guard let characteristic = pumpCommandCharacteristic else {
+            print("BLE pump write skipped: pump command characteristic not discovered")
+            return
+        }
+
+        let clampedPercent = min(percent, 100)
+        let payload = Data([clampedPercent])
+
+        let writeType: CBCharacteristicWriteType = characteristic.properties.contains(.write)
+            ? .withResponse
+            : .withoutResponse
+
+        print("BLE writing pump command: \(clampedPercent)%")
+        peripheral.writeValue(payload, for: characteristic, type: writeType)
+    }
+
     private func beginScan() {
         pendingScan = false
         cancelScanTimeout()
+        pumpCommandCharacteristic = nil
         print("BLE scan starting for service \(Self.serviceUUID.uuidString)")
 
         if let connectedPeripheral {
@@ -108,6 +144,7 @@ final class GroBotBluetoothManager: NSObject, GroBotBluetoothManaging {
         cancelScanTimeout()
         centralManager.stopScan()
         connectedPeripheral = peripheral
+        pumpCommandCharacteristic = nil
         peripheral.delegate = self
         print("BLE discovered \(advertisedName); attempting connection")
         emitStatus(.connecting(deviceName: advertisedName))
@@ -198,52 +235,42 @@ final class GroBotBluetoothManager: NSObject, GroBotBluetoothManaging {
 
         switch characteristic.uuid {
         case Self.inputCo2CharacteristicUUID:
-            guard let inputCo2ppm = parseCO2Value(from: value) else {
-                return nil
-            }
+            guard let inputCo2ppm = parseCO2Value(from: value) else { return nil }
             return GroBotSensorUpdate(inputCo2ppm: inputCo2ppm)
 
         case Self.inputTemperatureCharacteristicUUID:
-            guard let inputTemperatureC = parseFloatValue(from: value) else {
-                return nil
-            }
+            guard let inputTemperatureC = parseFloatValue(from: value) else { return nil }
             return GroBotSensorUpdate(inputTemperatureC: inputTemperatureC)
 
         case Self.inputHumidityCharacteristicUUID:
-            guard let inputHumidityPercent = parseFloatValue(from: value) else {
-                return nil
-            }
+            guard let inputHumidityPercent = parseFloatValue(from: value) else { return nil }
             return GroBotSensorUpdate(inputHumidityPercent: inputHumidityPercent)
 
         case Self.airflowCharacteristicUUID:
-            guard let airflowSlm = parseFloatValue(from: value) else {
-                return nil
-            }
+            guard let airflowSlm = parseFloatValue(from: value) else { return nil }
             return GroBotSensorUpdate(airflowSlm: airflowSlm)
 
         case Self.outputCo2CharacteristicUUID:
-            guard let outputCo2ppm = parseCO2Value(from: value) else {
-                return nil
-            }
+            guard let outputCo2ppm = parseCO2Value(from: value) else { return nil }
             return GroBotSensorUpdate(outputCo2ppm: outputCo2ppm)
 
         case Self.outputTemperatureCharacteristicUUID:
-            guard let outputTemperatureC = parseFloatValue(from: value) else {
-                return nil
-            }
+            guard let outputTemperatureC = parseFloatValue(from: value) else { return nil }
             return GroBotSensorUpdate(outputTemperatureC: outputTemperatureC)
 
         case Self.outputHumidityCharacteristicUUID:
-            guard let outputHumidityPercent = parseFloatValue(from: value) else {
-                return nil
-            }
+            guard let outputHumidityPercent = parseFloatValue(from: value) else { return nil }
             return GroBotSensorUpdate(outputHumidityPercent: outputHumidityPercent)
 
         case Self.outputO2CharacteristicUUID:
-            guard let outputO2Percent = parseFloatValue(from: value) else {
+            guard let outputO2Percent = parseFloatValue(from: value) else { return nil }
+            return GroBotSensorUpdate(outputO2Percent: outputO2Percent)
+            
+        case Self.pumpCommandCharacteristicUUID:
+            guard let value = characteristic.value?.first else {
                 return nil
             }
-            return GroBotSensorUpdate(outputO2Percent: outputO2Percent)
+            return GroBotSensorUpdate(pumpPercent: Double(value))
 
         default:
             return nil
@@ -292,6 +319,7 @@ extension GroBotBluetoothManager: CBCentralManagerDelegate {
                         didFailToConnect peripheral: CBPeripheral,
                         error: Error?) {
         connectedPeripheral = nil
+        pumpCommandCharacteristic = nil
         let message = error?.localizedDescription ?? "The device connection failed."
         print("BLE didFailToConnect: \(message)")
         emitStatus(.failed(message: "Failed to connect: \(message)"))
@@ -301,6 +329,7 @@ extension GroBotBluetoothManager: CBCentralManagerDelegate {
                         didDisconnectPeripheral peripheral: CBPeripheral,
                         error: Error?) {
         connectedPeripheral = nil
+        pumpCommandCharacteristic = nil
         print("BLE didDisconnect peripheral=\(peripheral.identifier.uuidString) error=\(String(describing: error))")
 
         if let error {
@@ -333,7 +362,8 @@ extension GroBotBluetoothManager: CBPeripheralDelegate {
                         Self.outputCo2CharacteristicUUID,
                         Self.outputTemperatureCharacteristicUUID,
                         Self.outputHumidityCharacteristicUUID,
-                        Self.outputO2CharacteristicUUID
+                        Self.outputO2CharacteristicUUID,
+                        Self.pumpCommandCharacteristicUUID
                     ],
                     for: $0
                 )
@@ -351,21 +381,30 @@ extension GroBotBluetoothManager: CBPeripheralDelegate {
 
         print("BLE characteristics discovered for service \(service.uuid.uuidString): \(service.characteristics?.map { $0.uuid.uuidString } ?? [])")
 
-        service.characteristics?
-            .filter {
-                $0.uuid == Self.inputCo2CharacteristicUUID ||
-                $0.uuid == Self.inputTemperatureCharacteristicUUID ||
-                $0.uuid == Self.inputHumidityCharacteristicUUID ||
-                $0.uuid == Self.airflowCharacteristicUUID ||
-                $0.uuid == Self.outputCo2CharacteristicUUID ||
-                $0.uuid == Self.outputTemperatureCharacteristicUUID ||
-                $0.uuid == Self.outputHumidityCharacteristicUUID ||
-                $0.uuid == Self.outputO2CharacteristicUUID
+        service.characteristics?.forEach { characteristic in
+            switch characteristic.uuid {
+            case Self.inputCo2CharacteristicUUID,
+                 Self.inputTemperatureCharacteristicUUID,
+                 Self.inputHumidityCharacteristicUUID,
+                 Self.airflowCharacteristicUUID,
+                 Self.outputCo2CharacteristicUUID,
+                 Self.outputTemperatureCharacteristicUUID,
+                 Self.outputHumidityCharacteristicUUID,
+                 Self.outputO2CharacteristicUUID:
+                peripheral.setNotifyValue(true, for: characteristic)
+                peripheral.readValue(for: characteristic)
+
+            case Self.pumpCommandCharacteristicUUID:
+                pumpCommandCharacteristic = characteristic
+                if characteristic.properties.contains(.notify) {
+                    peripheral.setNotifyValue(true, for: characteristic)
+                }
+                peripheral.readValue(for: characteristic)
+
+            default:
+                break
             }
-            .forEach {
-                peripheral.setNotifyValue(true, for: $0)
-                peripheral.readValue(for: $0)
-            }
+        }
     }
 
     func peripheral(_ peripheral: CBPeripheral,
@@ -377,6 +416,11 @@ extension GroBotBluetoothManager: CBPeripheralDelegate {
             return
         }
 
+        if characteristic.uuid == Self.pumpCommandCharacteristicUUID,
+           let value = characteristic.value?.first {
+            print("BLE pump characteristic updated: \(value)%")
+        }
+
         guard let sensorUpdate = sensorUpdate(for: characteristic), !sensorUpdate.isEmpty else {
             print("BLE didUpdateValue ignored for characteristic \(characteristic.uuid.uuidString)")
             return
@@ -384,5 +428,16 @@ extension GroBotBluetoothManager: CBPeripheralDelegate {
 
         print("BLE sensor update -> \(sensorUpdate)")
         delegate?.bluetoothManager(self, didReceiveSensorUpdate: sensorUpdate)
+    }
+
+    func peripheral(_ peripheral: CBPeripheral,
+                    didWriteValueFor characteristic: CBCharacteristic,
+                    error: Error?) {
+        if let error {
+            print("BLE didWriteValue error for \(characteristic.uuid.uuidString): \(error.localizedDescription)")
+            return
+        }
+
+        print("BLE write succeeded for \(characteristic.uuid.uuidString)")
     }
 }

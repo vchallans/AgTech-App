@@ -25,6 +25,8 @@
 
 /* Begin PBXFileReference section */
 			D1A1B001A1B2C3D400000001 /* BioReactor.Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/BioReactor.Signing.xcconfig; sourceTree = SOURCE_ROOT; };
+			D1A1B001A1B2C3D400000003 /* BioReactorTests.Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/BioReactorTests.Signing.xcconfig; sourceTree = SOURCE_ROOT; };
+			D1A1B001A1B2C3D400000004 /* BioReactorUITests.Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/BioReactorUITests.Signing.xcconfig; sourceTree = SOURCE_ROOT; };
 			B276BECC2F7033DB0054AE8C /* BioReactor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BioReactor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 			B276BED92F7033DD0054AE8C /* BioReactorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BioReactorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 			B276BEE32F7033DD0054AE8C /* BioReactorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BioReactorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,7 +78,7 @@
 			B276BEC32F7033DB0054AE8C = {
 				isa = PBXGroup;
 				children = (
-					D1A1B001A1B2C3D400000002 /* Config */,
+				D1A1B001A1B2C3D400000002 /* Config */,
 					B276BECE2F7033DB0054AE8C /* BioReactor */,
 					B276BEDC2F7033DD0054AE8C /* BioReactorTests */,
 					B276BEE62F7033DD0054AE8C /* BioReactorUITests */,
@@ -94,14 +96,16 @@
 				name = Products;
 				sourceTree = "<group>";
 			};
-			D1A1B001A1B2C3D400000002 /* Config */ = {
-				isa = PBXGroup;
-				children = (
-					D1A1B001A1B2C3D400000001 /* BioReactor.Signing.xcconfig */,
-				);
-				path = Config;
-				sourceTree = "<group>";
-			};
+				D1A1B001A1B2C3D400000002 /* Config */ = {
+					isa = PBXGroup;
+					children = (
+						D1A1B001A1B2C3D400000001 /* BioReactor.Signing.xcconfig */,
+						D1A1B001A1B2C3D400000003 /* BioReactorTests.Signing.xcconfig */,
+						D1A1B001A1B2C3D400000004 /* BioReactorUITests.Signing.xcconfig */,
+					);
+					path = Config;
+					sourceTree = "<group>";
+				};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -314,7 +318,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 9YQLA65CFY;
+				DEVELOPMENT_TEAM = 342Y69G7K9;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -378,7 +382,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 9YQLA65CFY;
+				DEVELOPMENT_TEAM = 342Y69G7K9;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -462,20 +466,18 @@
 			};
 			name = Release;
 		};
-		B276BEF12F7033DD0054AE8C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9YQLA65CFY;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sidac.BioReactorTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+			B276BEF12F7033DD0054AE8C /* Debug */ = {
+				isa = XCBuildConfiguration;
+				baseConfigurationReference = D1A1B001A1B2C3D400000003 /* BioReactorTests.Signing.xcconfig */;
+				buildSettings = {
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					CURRENT_PROJECT_VERSION = 1;
+					GENERATE_INFOPLIST_FILE = YES;
+					IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					STRING_CATALOG_GENERATE_SYMBOLS = NO;
+					SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -484,20 +486,18 @@
 			};
 			name = Debug;
 		};
-		B276BEF22F7033DD0054AE8C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9YQLA65CFY;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sidac.BioReactorTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+			B276BEF22F7033DD0054AE8C /* Release */ = {
+				isa = XCBuildConfiguration;
+				baseConfigurationReference = D1A1B001A1B2C3D400000003 /* BioReactorTests.Signing.xcconfig */;
+				buildSettings = {
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					CURRENT_PROJECT_VERSION = 1;
+					GENERATE_INFOPLIST_FILE = YES;
+					IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					STRING_CATALOG_GENERATE_SYMBOLS = NO;
+					SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -506,18 +506,16 @@
 			};
 			name = Release;
 		};
-		B276BEF42F7033DD0054AE8C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9YQLA65CFY;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sidac.BioReactorUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+			B276BEF42F7033DD0054AE8C /* Debug */ = {
+				isa = XCBuildConfiguration;
+				baseConfigurationReference = D1A1B001A1B2C3D400000004 /* BioReactorUITests.Signing.xcconfig */;
+				buildSettings = {
+					CURRENT_PROJECT_VERSION = 1;
+					GENERATE_INFOPLIST_FILE = YES;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					STRING_CATALOG_GENERATE_SYMBOLS = NO;
+					SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -526,18 +524,16 @@
 			};
 			name = Debug;
 		};
-		B276BEF52F7033DD0054AE8C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9YQLA65CFY;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.sidac.BioReactorUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+			B276BEF52F7033DD0054AE8C /* Release */ = {
+				isa = XCBuildConfiguration;
+				baseConfigurationReference = D1A1B001A1B2C3D400000004 /* BioReactorUITests.Signing.xcconfig */;
+				buildSettings = {
+					CURRENT_PROJECT_VERSION = 1;
+					GENERATE_INFOPLIST_FILE = YES;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					STRING_CATALOG_GENERATE_SYMBOLS = NO;
+					SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;

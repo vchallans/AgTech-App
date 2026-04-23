@@ -72,11 +72,7 @@ struct ControlsView: View {
                     Text(viewModel.pumpOn ? "Pump is currently On" : "Pump is currently Off")
                         .foregroundColor(.secondary)
 
-                    Button("Turn Off Pump") {
-                        viewModel.setPumpPercent(0)
-                    }
-
-                    Button("Calibrate Sensor") {
+                    Button("Calibrate Pump") {
                         dismissKeyboard()
                         print("Calibrating...")
                     }

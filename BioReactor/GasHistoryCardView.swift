@@ -10,129 +10,192 @@ import Charts
 struct GasHistoryCardView: View {
     let history: [ReactorReading]
 
-    private var baselineCO2: Double {
-        history.first?.outputCo2ppm ?? 1
+    private var earliestTimestamp: Date? {
+        history.first?.timestamp
     }
 
-    private var baselineO2: Double {
-        history.first?.outputO2Percent ?? 1
+    private var latestTimestamp: Date? {
+        history.last?.timestamp
     }
 
-    private var latestReading: ReactorReading? {
-        history.last
-    }
-
-    private var trendText: String {
-        guard history.count >= 2 else { return "Collecting data..." }
-
-        let previous = history[history.count - 2]
-        let latest = history[history.count - 1]
-
-        if latest.outputCo2ppm < previous.outputCo2ppm && latest.outputO2Percent > previous.outputO2Percent {
-            return "Photosynthesis trend: CO₂ down, O₂ up"
-        } else if latest.outputCo2ppm > previous.outputCo2ppm && latest.outputO2Percent < previous.outputO2Percent {
-            return "Respiration trend: CO₂ up, O₂ down"
-        } else {
-            return "Gas balance stable"
+    private var timeWindowText: String {
+        guard let earliestTimestamp, let latestTimestamp else {
+            return "Waiting for air quality samples"
         }
+
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return "\(formatter.string(from: earliestTimestamp)) to \(formatter.string(from: latestTimestamp))"
+    }
+
+    private var timeSpan: TimeInterval {
+        guard let earliestTimestamp, let latestTimestamp else {
+            return 0
+        }
+
+        return latestTimestamp.timeIntervalSince(earliestTimestamp)
+    }
+
+    private var timeDomain: ClosedRange<Date> {
+        guard let earliestTimestamp, let latestTimestamp else {
+            let now = Date()
+            return now...now.addingTimeInterval(60)
+        }
+
+        if earliestTimestamp == latestTimestamp {
+            return earliestTimestamp.addingTimeInterval(-30)...latestTimestamp.addingTimeInterval(30)
+        }
+
+        return earliestTimestamp...latestTimestamp
+    }
+
+    private var xAxisValues: [Date] {
+        guard let earliestTimestamp else {
+            return []
+        }
+
+        guard timeSpan > 0 else {
+            return [earliestTimestamp]
+        }
+
+        let segments = 3
+        return (0...segments).map { index in
+            earliestTimestamp.addingTimeInterval(timeSpan * Double(index) / Double(segments))
+        }
+    }
+
+    private var co2Domain: ClosedRange<Double> {
+        let values = history.flatMap { reading -> [Double] in
+            [
+                reading.inputCo2ppm,
+                reading.outputCo2ppm,
+            ]
+        }
+
+        return rawDomain(for: values, minimumPadding: 20)
+    }
+
+    private var o2Domain: ClosedRange<Double> {
+        let values = history.map(\.outputO2Percent)
+
+        return rawDomain(for: values, minimumPadding: 0.4)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Output CO₂ vs O₂ History")
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Air Quality History")
+                        .font(.headline)
+
+                    Text("Up to the last hour of readings")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
 
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .foregroundStyle(.secondary)
-            }
+                VStack(alignment: .trailing, spacing: 4) {
+                    Image(systemName: "chart.xyaxis.line")
+                        .foregroundStyle(.secondary)
 
-            if let latest = latestReading {
-                HStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("CO₂")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(Int(latest.outputCo2ppm)) ppm")
-                            .font(.title3.weight(.semibold))
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("O₂")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(String(format: "%.1f", latest.outputO2Percent)) %")
-                            .font(.title3.weight(.semibold))
-                    }
+                    Text(timeWindowText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 
             if history.count > 1 {
-                Chart {
-                    ForEach(history) { reading in
-                        LineMark(
-                            x: .value("Time", reading.timestamp),
-                            y: .value("CO₂ (% baseline)", (reading.outputCo2ppm / baselineCO2) * 100)
-                        )
-                        .foregroundStyle(.green)
-                        .lineStyle(StrokeStyle(lineWidth: 2))
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("CO₂ Comparison")
+                        .font(.headline)
 
-                        PointMark(
-                            x: .value("Time", reading.timestamp),
-                            y: .value("CO₂ (% baseline)", (reading.outputCo2ppm / baselineCO2) * 100)
-                        )
-                        .foregroundStyle(.green)
+                    Chart {
+                        ForEach(history) { reading in
+                            LineMark(
+                                x: .value("Time", reading.timestamp),
+                                y: .value("Input CO₂", reading.inputCo2ppm)
+                            )
+                            .foregroundStyle(.green)
+                            .lineStyle(StrokeStyle(lineWidth: 2.5))
+                            .interpolationMethod(.linear)
 
-                        LineMark(
-                            x: .value("Time", reading.timestamp),
-                            y: .value("O₂ (% baseline)", (reading.outputO2Percent / baselineO2) * 100)
-                        )
-                        .foregroundStyle(.blue)
-                        .lineStyle(StrokeStyle(lineWidth: 2))
+                            LineMark(
+                                x: .value("Time", reading.timestamp),
+                                y: .value("Output CO₂", reading.outputCo2ppm)
+                            )
+                            .foregroundStyle(.orange)
+                            .lineStyle(StrokeStyle(lineWidth: 3))
+                            .interpolationMethod(.linear)
+                        }
+                    }
+                    .frame(height: 220)
+                    .chartXScale(domain: timeDomain)
+                    .chartXAxis {
+                        AxisMarks(values: xAxisValues) { value in
+                            AxisGridLine()
+                            AxisTick()
+                            AxisValueLabel {
+                                if let date = value.as(Date.self) {
+                                    Text(date, format: .dateTime.hour().minute())
+                                }
+                            }
+                        }
+                    }
+                    .chartYScale(domain: co2Domain)
+                    .chartYAxisLabel("ppm", position: .leading)
 
-                        PointMark(
-                            x: .value("Time", reading.timestamp),
-                            y: .value("O₂ (% baseline)", (reading.outputO2Percent / baselineO2) * 100)
-                        )
-                        .foregroundStyle(.blue)
+                    HStack(spacing: 14) {
+                        legendItem(color: .green, label: "Input CO₂")
+                        legendItem(color: .orange, label: "Output CO₂")
                     }
                 }
-                .frame(height: 220)
-                .chartYAxisLabel("Normalized %", position: .leading)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Output O₂")
+                        .font(.headline)
+
+                    Chart {
+                        ForEach(history) { reading in
+                            LineMark(
+                                x: .value("Time", reading.timestamp),
+                                y: .value("Output O₂", reading.outputO2Percent)
+                            )
+                            .foregroundStyle(.blue)
+                            .lineStyle(StrokeStyle(lineWidth: 2.5))
+                            .interpolationMethod(.linear)
+                        }
+                    }
+                    .frame(height: 180)
+                    .chartXScale(domain: timeDomain)
+                    .chartXAxis {
+                        AxisMarks(values: xAxisValues) { value in
+                            AxisGridLine()
+                            AxisTick()
+                            AxisValueLabel {
+                                if let date = value.as(Date.self) {
+                                    Text(date, format: .dateTime.hour().minute())
+                                }
+                            }
+                        }
+                    }
+                    .chartYScale(domain: o2Domain)
+                    .chartYAxisLabel("%", position: .leading)
+
+                    HStack(spacing: 14) {
+                        legendItem(color: .blue, label: "Output O₂")
+                    }
+                }
             } else {
                 ContentUnavailableView(
                     "Not enough history yet",
                     systemImage: "clock.arrow.circlepath",
-                    description: Text("Generate more readings to see the trend.")
+                    description: Text("Generate more air quality readings in the last hour to see the trend.")
                 )
                 .frame(height: 220)
             }
-
-            HStack(spacing: 12) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(.green)
-                        .frame(width: 10, height: 10)
-                    Text("CO₂")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(.blue)
-                        .frame(width: 10, height: 10)
-                    Text("O₂")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Text(trendText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
         }
         .padding()
         .background(
@@ -141,5 +204,30 @@ struct GasHistoryCardView: View {
                 .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 3)
         )
         .padding(.horizontal)
+    }
+
+    private func legendItem(color: Color, label: String) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func rawDomain(
+        for values: [Double],
+        minimumPadding: Double
+    ) -> ClosedRange<Double> {
+        guard let minValue = values.min(), let maxValue = values.max() else {
+            return 0...1
+        }
+
+        let span = maxValue - minValue
+        let padding = max(span * 0.18, minimumPadding)
+        return (minValue - padding)...(maxValue + padding)
     }
 }

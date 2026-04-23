@@ -24,9 +24,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		B276BECC2F7033DB0054AE8C /* BioReactor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BioReactor.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B276BED92F7033DD0054AE8C /* BioReactorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BioReactorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		B276BEE32F7033DD0054AE8C /* BioReactorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BioReactorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+			D1A1B001A1B2C3D400000001 /* BioReactor.Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/BioReactor.Signing.xcconfig; sourceTree = SOURCE_ROOT; };
+			B276BECC2F7033DB0054AE8C /* BioReactor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BioReactor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+			B276BED92F7033DD0054AE8C /* BioReactorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BioReactorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+			B276BEE32F7033DD0054AE8C /* BioReactorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BioReactorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -72,26 +73,35 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		B276BEC32F7033DB0054AE8C = {
-			isa = PBXGroup;
-			children = (
-				B276BECE2F7033DB0054AE8C /* BioReactor */,
-				B276BEDC2F7033DD0054AE8C /* BioReactorTests */,
-				B276BEE62F7033DD0054AE8C /* BioReactorUITests */,
+			B276BEC32F7033DB0054AE8C = {
+				isa = PBXGroup;
+				children = (
+					D1A1B001A1B2C3D400000002 /* Config */,
+					B276BECE2F7033DB0054AE8C /* BioReactor */,
+					B276BEDC2F7033DD0054AE8C /* BioReactorTests */,
+					B276BEE62F7033DD0054AE8C /* BioReactorUITests */,
 				B276BECD2F7033DB0054AE8C /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		B276BECD2F7033DB0054AE8C /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B276BECC2F7033DB0054AE8C /* BioReactor.app */,
+			B276BECD2F7033DB0054AE8C /* Products */ = {
+				isa = PBXGroup;
+				children = (
+					B276BECC2F7033DB0054AE8C /* BioReactor.app */,
 				B276BED92F7033DD0054AE8C /* BioReactorTests.xctest */,
 				B276BEE32F7033DD0054AE8C /* BioReactorUITests.xctest */,
 			);
-			name = Products;
-			sourceTree = "<group>";
-		};
+				name = Products;
+				sourceTree = "<group>";
+			};
+			D1A1B001A1B2C3D400000002 /* Config */ = {
+				isa = PBXGroup;
+				children = (
+					D1A1B001A1B2C3D400000001 /* BioReactor.Signing.xcconfig */,
+				);
+				path = Config;
+				sourceTree = "<group>";
+			};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -390,17 +400,16 @@
 			};
 			name = Release;
 		};
-		B276BEEE2F7033DD0054AE8C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 342Y69G7K9;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BioReactor uses Bluetooth to find and connect to your Gro-Bot sensor device.";
+			B276BEEE2F7033DD0054AE8C /* Debug */ = {
+				isa = XCBuildConfiguration;
+				baseConfigurationReference = D1A1B001A1B2C3D400000001 /* BioReactor.Signing.xcconfig */;
+				buildSettings = {
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+					CURRENT_PROJECT_VERSION = 1;
+					ENABLE_PREVIEWS = YES;
+					GENERATE_INFOPLIST_FILE = YES;
+					INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BioReactor uses Bluetooth to find and connect to your Gro-Bot sensor device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -409,12 +418,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.vidhichallani.BioReactor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+					);
+					MARKETING_VERSION = 1.0;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					STRING_CATALOG_GENERATE_SYMBOLS = YES;
+					SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -423,17 +431,16 @@
 			};
 			name = Debug;
 		};
-		B276BEEF2F7033DD0054AE8C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 342Y69G7K9;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BioReactor uses Bluetooth to find and connect to your Gro-Bot sensor device.";
+			B276BEEF2F7033DD0054AE8C /* Release */ = {
+				isa = XCBuildConfiguration;
+				baseConfigurationReference = D1A1B001A1B2C3D400000001 /* BioReactor.Signing.xcconfig */;
+				buildSettings = {
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+					CURRENT_PROJECT_VERSION = 1;
+					ENABLE_PREVIEWS = YES;
+					GENERATE_INFOPLIST_FILE = YES;
+					INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "BioReactor uses Bluetooth to find and connect to your Gro-Bot sensor device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -442,12 +449,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.vidhichallani.BioReactor;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+					);
+					MARKETING_VERSION = 1.0;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					STRING_CATALOG_GENERATE_SYMBOLS = YES;
+					SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;

@@ -89,6 +89,8 @@ struct MaintenanceReminder: Codable, Identifiable {
 
 
 final class PhotobioreactorViewModel: ObservableObject {
+    static let historyWindowDuration: TimeInterval = 60 * 60
+
     @Published var currentReading: ReactorReading
     @Published var algaeHealth: String = "Good"
     @Published var pumpOn: Bool = true
@@ -144,6 +146,11 @@ final class PhotobioreactorViewModel: ObservableObject {
     private var hasSentLowHumidityAlert = false
     private var hasSentHighHumidityAlert = false
     private var lastLiveReadingAt: Date?
+    private var hasReceivedLiveReading = false
+
+    var airQualityHistory: [ReactorReading] {
+        Self.rollingHistoryWindow(from: history, duration: Self.historyWindowDuration)
+    }
 
     init(
         bluetoothManager: GroBotBluetoothManaging = GroBotBluetoothManager(),
@@ -254,11 +261,29 @@ final class PhotobioreactorViewModel: ObservableObject {
         evaluateThresholds(using: newReading)
     }
 
+    static func rollingHistoryWindow(
+        from history: [ReactorReading],
+        duration: TimeInterval = historyWindowDuration
+    ) -> [ReactorReading] {
+        guard let latestTimestamp = history.map(\.timestamp).max() else {
+            return []
+        }
+
+        let windowStart = latestTimestamp.addingTimeInterval(-duration)
+
+        return history
+            .filter { $0.timestamp >= windowStart && $0.timestamp <= latestTimestamp }
+            .sorted { $0.timestamp < $1.timestamp }
+    }
+
     private func applyLiveSensorUpdate(_ update: GroBotSensorUpdate) {
         let liveReading = currentReading.applying(update)
         currentReading = liveReading
 
-        if let lastLiveReadingAt,
+        if !hasReceivedLiveReading {
+            history = [liveReading]
+            hasReceivedLiveReading = true
+        } else if let lastLiveReadingAt,
            liveReading.timestamp.timeIntervalSince(lastLiveReadingAt) < liveReadingMergeWindowSeconds,
            !history.isEmpty {
             history[history.count - 1] = liveReading
